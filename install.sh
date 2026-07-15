@@ -1,8 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-REPO="${VOHIVE_RELEASE_REPO:-iniwex5/vohive-release}"
-CHANNEL="stable"
+REPO="${VOHIVE_RELEASE_REPO:-nkguo/vohive-release}"
 VERSION=""
 NO_SYSTEMD=0
 DRY_RUN=0
@@ -23,8 +22,7 @@ err() { printf '[vohive-install] 错误: %s\n' "$*" >&2; }
 usage() {
   cat <<USAGE
 用法: install.sh [选项]
-  --version <vX.Y.Z|latest|stable>
-  --channel <stable|latest>
+  --version <vX.Y.Z|latest>
   --no-systemd
   --dry-run
   --force
@@ -59,7 +57,7 @@ need_cmd() {
 
 resolve_version() {
   local v="$1"
-  if [[ -n "${v}" && "${v}" != "latest" && "${v}" != "stable" ]]; then
+  if [[ -n "${v}" && "${v}" != "latest" ]]; then
     printf '%s\n' "${v}"
     return 0
   fi
@@ -81,10 +79,6 @@ parse_args() {
     case "$1" in
       --version)
         VERSION="${2:-}"
-        shift 2
-        ;;
-      --channel)
-        CHANNEL="${2:-}"
         shift 2
         ;;
       --no-systemd)

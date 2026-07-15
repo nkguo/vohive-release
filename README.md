@@ -2,14 +2,11 @@
 
 公开分发仓库：提供二进制发布资产、安装脚本和运维文档。
 
-# 项目源码
-https://github.com/iniwex5/vohive
-
 ## 免责声明
 
 > [!WARNING]
 > **重要提示：本软件（VoHive）仅供个人内部测试使用，严禁商业使用，以及严禁将本软件用于任何非法或违规场景。**
-> 
+>
 > 使用者因违反当地法律法规、非法使用本软件造成的一切法律责任及后果，由使用者自行承担，软件原作者不承担任何责任。使用本软件即表示您同意本免责声明。
 
 ## 功能介绍
@@ -75,27 +72,26 @@ echo 'AT+QCFG="usbnet",0;+CFUN=1,1' | sudo socat - /dev/ttyUSB2,crnl
 ## 四、部署方式一：一键安装
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/iniwex5/vohive-release/master/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/nkguo/vohive-release/master/install.sh | bash
 ```
 
 指定版本：
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/iniwex5/vohive-release/master/install.sh | bash -s -- --version v1.0.0
+curl -fsSL https://raw.githubusercontent.com/nkguo/vohive-release/master/install.sh | bash -s -- --version v1.5.5
 ```
 
 仅安装二进制（不安装 systemd）：
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/iniwex5/vohive-release/master/install.sh | bash -s -- --no-systemd
+curl -fsSL https://raw.githubusercontent.com/nkguo/vohive-release/master/install.sh | bash -s -- --no-systemd
 ```
 
 卸载：
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/iniwex5/vohive-release/master/uninstall.sh | bash
+curl -fsSL https://raw.githubusercontent.com/nkguo/vohive-release/master/uninstall.sh | bash
 ```
-
 
 ## 默认安装目录（便携部署）
 
@@ -104,8 +100,16 @@ curl -fsSL https://raw.githubusercontent.com/iniwex5/vohive-release/master/unins
 - 数据：`/opt/vohive/data`
 - 日志目录：`/opt/vohive/logs`
 
-
 ## 五、部署方式二：Docker / Docker Compose
+
+Docker 部署与上面的脚本安装互相独立。先下载并导入 `v1.5.5` 的镜像：
+
+```bash
+curl -fL \
+  https://github.com/nkguo/vohive-release/releases/download/v1.5.5/docker_iniwex_vohive_1.5.5_latest.tar \
+  -o docker_iniwex_vohive_1.5.5_latest.tar
+docker load -i docker_iniwex_vohive_1.5.5_latest.tar
+```
 
 ### 1. 创建目录
 
@@ -134,6 +138,7 @@ web:
 services:
   vohive:
     image: iniwex/vohive:latest
+    pull_policy: never
     container_name: vohive
     restart: unless-stopped
     network_mode: host
@@ -155,15 +160,15 @@ services:
 docker compose up -d
 ```
 
-
 ### 5. 访问后台
 
 ```text
 http://你的服务器IP:7575
 ```
+
 注意：
 
-- Docker 部署下AT模式也要关闭宿主机 `ModemManager`
+- Docker 部署下 AT 模式也要关闭宿主机 `ModemManager`
 - 这里用了 `privileged`、`/dev` 透传和 `host network`，这是因为程序需要直接接管模组设备
 
 ## 六、机器人常用命令
@@ -181,6 +186,7 @@ http://你的服务器IP:7575
 - VoWiFi 不是只要有网就一定能用，还取决于运营商、号码状态和网络环境要求
 - 如果你的需求只是短信、代理池、多模组管理，不折腾 VoWiFi 也可以先用起来
 - 本程序已禁止国内运营商卡发起VoWifi，请遵纪守法。
+
 ## 八、已知Vohive支持VoWifi的运营商
 
 - CTE UK
@@ -189,16 +195,15 @@ http://你的服务器IP:7575
 - VOXI UK
 - Vodafone UK
 - 3UK
-
 - Vodafone DE
 - Telekom DE
 - O2 DE
-
 - T-Mobile US
 - RedPocket US
 - Lyca US
 - AT&T US
 - 未标出的不代表不兼容，只是我没有
+
 ### 程序截图
 
 ![image](https://cdn.nodeimage.com/i/rnGhjMfPlMatrdxQMPogawI3d5OGc1Fu.png)
@@ -213,10 +218,4 @@ http://你的服务器IP:7575
 
 ![image](https://cdn.nodeimage.com/i/X5Ps5w9AHo1Qas6DDsnxYnbrfYcVhAfV.png)
 
-### 发布频道：
-
-https://t.me/vohive_channel
-
-### 交流群：
-
-https://t.me/vohive
+&nbsp;
