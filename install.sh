@@ -2,6 +2,7 @@
 set -euo pipefail
 
 REPO="${VOHIVE_RELEASE_REPO:-nkguo/vohive-release}"
+DOWNLOAD_PROXY="${VOHIVE_DOWNLOAD_PROXY:-https://gh-proxy.com}"
 VERSION=""
 NO_SYSTEMD=0
 DRY_RUN=0
@@ -23,6 +24,7 @@ usage() {
   cat <<USAGE
 用法: install.sh [选项]
   --version <X.Y.Z|latest>
+  VOHIVE_DOWNLOAD_PROXY=<url-prefix> 直连失败时使用下载代理（默认 gh-proxy.com）
   --no-systemd
   --dry-run
   --force
@@ -55,6 +57,41 @@ need_cmd() {
   }
 }
 
+proxy_url() {
+  printf '%s/%s\n' "${DOWNLOAD_PROXY%/}" "$1"
+}
+
+fetch_url() {
+  local url="$1"
+  if curl -fsSL --retry 2 --connect-timeout 10 "${url}"; then
+    return 0
+  fi
+  if [[ -n "${DOWNLOAD_PROXY}" ]]; then
+    curl -fsSL --retry 2 --connect-timeout 10 "$(proxy_url "${url}")"
+  fi
+}
+
+download_file() {
+  local url="$1"
+  local destination="$2"
+
+  log "正在下载: ${url}"
+  if curl -fsSL --retry 2 --connect-timeout 10 "${url}" -o "${destination}"; then
+    return 0
+  fi
+
+  if [[ -n "${DOWNLOAD_PROXY}" ]]; then
+    local proxied_url
+    proxied_url="$(proxy_url "${url}")"
+    log "直连失败，尝试下载代理: ${proxied_url}"
+    if curl -fsSL --retry 2 --connect-timeout 10 "${proxied_url}" -o "${destination}"; then
+      return 0
+    fi
+  fi
+
+  return 1
+}
+
 resolve_version() {
   local v="$1"
   if [[ -n "${v}" && "${v}" != "latest" ]]; then
@@ -66,7 +103,7 @@ resolve_version() {
 
   local api_url="https://api.github.com/repos/${REPO}/releases/latest"
   local latest_json
-  latest_json="$(curl -fsSL "${api_url}")"
+  latest_json="$(fetch_url "${api_url}")"
   local resolved
   resolved="$(printf '%s\n' "${latest_json}" | sed -n 's/.*"tag_name"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | head -n1)"
   if [[ -z "${resolved}" ]]; then
@@ -223,16 +260,14 @@ main() {
   local downloaded="${tmp}/${asset}"
 
   log "已解析版本: ${resolved_version}"
-  log "正在下载二进制: ${base}/${asset}"
-
-  if ! curl -fsSL "${base}/${asset}" -o "${downloaded}"; then
+  if ! download_file "${base}/${asset}" "${downloaded}"; then
     local legacy_asset
     local legacy_downloaded=0
     for legacy_asset in \
       "vohive_v${resolved_version}_linux_${arch}" \
       "vohive_${resolved_version}_linux_${arch}"; do
-      log "固定资产名不存在，尝试历史资产: ${legacy_asset}"
-      if curl -fsSL "${base}/${legacy_asset}" -o "${downloaded}"; then
+      log "主资产下载失败，尝试历史资产: ${legacy_asset}"
+      if download_file "${base}/${legacy_asset}" "${downloaded}"; then
         asset="${legacy_asset}"
         legacy_downloaded=1
         break
@@ -246,7 +281,7 @@ main() {
   fi
 
   local checksums="${tmp}/SHA256SUMS"
-  if curl -fsSL "${base}/SHA256SUMS" -o "${checksums}"; then
+  if download_file "${base}/SHA256SUMS" "${checksums}"; then
     need_cmd sha256sum
     local expected_checksum
     expected_checksum="$(awk -v asset="${asset}" '$2 == asset || $2 == "*" asset { print $1; exit }' "${checksums}")"
