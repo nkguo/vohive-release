@@ -75,6 +75,13 @@ echo 'AT+QCFG="usbnet",0;+CFUN=1,1' | sudo socat - /dev/ttyUSB2,crnl
 curl -fsSL https://raw.githubusercontent.com/nkguo/vohive-release/main/install.sh | bash
 ```
 
+网络无法直连 GitHub 时，使用代理下载脚本和二进制：
+
+```bash
+curl -fsSL https://gh-proxy.com/https://raw.githubusercontent.com/nkguo/vohive-release/main/install.sh \
+  | VOHIVE_DOWNLOAD_PROXY=https://gh-proxy.com bash
+```
+
 指定版本：
 
 ```bash

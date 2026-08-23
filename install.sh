@@ -2,7 +2,7 @@
 set -euo pipefail
 
 REPO="${VOHIVE_RELEASE_REPO:-nkguo/vohive-release}"
-DOWNLOAD_PROXY="${VOHIVE_DOWNLOAD_PROXY:-https://gh-proxy.com}"
+DOWNLOAD_PROXY="${VOHIVE_DOWNLOAD_PROXY:-}"
 VERSION=""
 NO_SYSTEMD=0
 DRY_RUN=0
@@ -24,7 +24,7 @@ usage() {
   cat <<USAGE
 用法: install.sh [选项]
   --version <X.Y.Z|latest>
-  VOHIVE_DOWNLOAD_PROXY=<url-prefix> 直连失败时使用下载代理（默认 gh-proxy.com）
+  VOHIVE_DOWNLOAD_PROXY=<url-prefix> 使用下载代理（例如 https://gh-proxy.com）
   --no-systemd
   --dry-run
   --force
@@ -63,11 +63,10 @@ proxy_url() {
 
 fetch_url() {
   local url="$1"
-  if curl -fsSL --retry 2 --connect-timeout 10 "${url}"; then
-    return 0
-  fi
   if [[ -n "${DOWNLOAD_PROXY}" ]]; then
     curl -fsSL --retry 2 --connect-timeout 10 "$(proxy_url "${url}")"
+  else
+    curl -fsSL --retry 2 --connect-timeout 10 "${url}"
   fi
 }
 
@@ -75,21 +74,14 @@ download_file() {
   local url="$1"
   local destination="$2"
 
-  log "正在下载: ${url}"
-  if curl -fsSL --retry 2 --connect-timeout 10 "${url}" -o "${destination}"; then
-    return 0
-  fi
-
+  local request_url="${url}"
   if [[ -n "${DOWNLOAD_PROXY}" ]]; then
-    local proxied_url
-    proxied_url="$(proxy_url "${url}")"
-    log "直连失败，尝试下载代理: ${proxied_url}"
-    if curl -fsSL --retry 2 --connect-timeout 10 "${proxied_url}" -o "${destination}"; then
-      return 0
-    fi
+    request_url="$(proxy_url "${url}")"
+    log "使用下载代理: ${request_url}"
+  else
+    log "正在下载: ${request_url}"
   fi
-
-  return 1
+  curl -fsSL --retry 2 --connect-timeout 10 "${request_url}" -o "${destination}"
 }
 
 resolve_version() {
