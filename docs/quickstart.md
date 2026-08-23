@@ -3,7 +3,7 @@
 1. 安装最新版本：
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/nkguo/vohive-release/master/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/nkguo/vohive-release/main/install.sh | bash
 ```
 
 2. 查看服务状态：

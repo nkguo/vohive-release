@@ -22,7 +22,7 @@ err() { printf '[vohive-install] 错误: %s\n' "$*" >&2; }
 usage() {
   cat <<USAGE
 用法: install.sh [选项]
-  --version <vX.Y.Z|latest>
+  --version <X.Y.Z|latest>
   --no-systemd
   --dry-run
   --force
@@ -58,6 +58,8 @@ need_cmd() {
 resolve_version() {
   local v="$1"
   if [[ -n "${v}" && "${v}" != "latest" ]]; then
+    v="${v#v}"
+    v="${v#V}"
     printf '%s\n' "${v}"
     return 0
   fi
@@ -71,6 +73,8 @@ resolve_version() {
     err "无法从 GitHub API 获取最新 Release 版本号。"
     exit 1
   fi
+  resolved="${resolved#v}"
+  resolved="${resolved#V}"
   printf '%s\n' "${resolved}"
 }
 
@@ -203,9 +207,14 @@ main() {
   arch="$(detect_arch)"
   local resolved_version
   resolved_version="$(resolve_version "${VERSION}")"
+  if ! [[ "${resolved_version}" =~ ^[0-9]+\.[0-9]+\.[0-9]+([-.][0-9A-Za-z.-]+)?$ ]]; then
+    err "无效版本号: ${resolved_version}"
+    exit 1
+  fi
 
-  local asset="vohive_${resolved_version}_linux_${arch}"
-  local base="https://github.com/${REPO}/releases/download/${resolved_version}"
+  local asset="vohive-linux-${arch}"
+  local release_tag="v${resolved_version}"
+  local base="https://github.com/${REPO}/releases/download/${release_tag}"
 
   local tmp
   tmp="$(mktemp -d)"
@@ -216,7 +225,47 @@ main() {
   log "已解析版本: ${resolved_version}"
   log "正在下载二进制: ${base}/${asset}"
 
-  curl -fsSL "${base}/${asset}" -o "${downloaded}"
+  if ! curl -fsSL "${base}/${asset}" -o "${downloaded}"; then
+    local legacy_asset
+    local legacy_downloaded=0
+    for legacy_asset in \
+      "vohive_v${resolved_version}_linux_${arch}" \
+      "vohive_${resolved_version}_linux_${arch}"; do
+      log "固定资产名不存在，尝试历史资产: ${legacy_asset}"
+      if curl -fsSL "${base}/${legacy_asset}" -o "${downloaded}"; then
+        asset="${legacy_asset}"
+        legacy_downloaded=1
+        break
+      fi
+    done
+
+    if [[ "${legacy_downloaded}" != "1" ]]; then
+      err "无法下载适用于 ${arch} 的 Release 资产"
+      exit 1
+    fi
+  fi
+
+  local checksums="${tmp}/SHA256SUMS"
+  if curl -fsSL "${base}/SHA256SUMS" -o "${checksums}"; then
+    need_cmd sha256sum
+    local expected_checksum
+    expected_checksum="$(awk -v asset="${asset}" '$2 == asset || $2 == "*" asset { print $1; exit }' "${checksums}")"
+    if [[ -z "${expected_checksum}" ]]; then
+      err "SHA256SUMS 中缺少 ${asset}"
+      exit 1
+    fi
+
+    local actual_checksum
+    actual_checksum="$(sha256sum "${downloaded}" | awk '{ print $1 }')"
+    if [[ "${actual_checksum}" != "${expected_checksum}" ]]; then
+      err "二进制 SHA-256 校验失败"
+      exit 1
+    fi
+    log "SHA-256 校验通过"
+  else
+    log "当前 Release 未提供 SHA256SUMS，跳过校验"
+  fi
+
   chmod +x "${downloaded}"
 
   local extracted="${downloaded}"
