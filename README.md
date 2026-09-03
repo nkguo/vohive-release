@@ -197,7 +197,6 @@ curl -fsSL https://raw.githubusercontent.com/nkguo/vohive-release/main/install.s
 | `--dry-run`             | 关闭                     | 预览操作，不修改系统安装目录                           |
 | `--force`               | 关闭                     | 覆盖已有的默认配置文件                              |
 | `VOHIVE_DOWNLOAD_PROXY` | 空                      | Release 下载代理前缀，例如 `https://gh-proxy.com` |
-| `VOHIVE_RELEASE_REPO`   | `nkguo/vohive-release` | Release 所在的 GitHub 仓库                    |
 
 
 ## 安装后的检查
