@@ -243,7 +243,6 @@ http://服务器IP:7575
 
 ## Docker 部署
 
-### 镜像地址
 
 - **Docker Hub**：`docker.io/nkguo/vohive`
 - **GHCR**：`ghcr.io/nkguo/vohive`
