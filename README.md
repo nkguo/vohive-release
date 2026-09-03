@@ -1,22 +1,85 @@
-# VoHive Release
+# VoHive
 
-VoHive 的公开分发仓库，提供 Linux 二进制发布资产、一键安装与卸载脚本，以及部署和运维说明。
+面向高通 4G/LTE/5G 模组的多设备管理、移动网络代理、短信通信、eSIM 和 VoWiFi 综合管理平台。
+
+> [!IMPORTANT]
+> 本仓库是 VoHive 的公开发行仓库，只用于发布安装与卸载脚本、使用文档和已构建的二进制或容器资产。
+>
+> **VoHive 应用程序不是开源软件，本仓库也不提供其程序源代码。**
+
+## 文档导航
+
+- [项目说明](#项目说明)
+- [项目来源与鸣谢](#项目来源与鸣谢)
+- [仓库性质、授权与免责声明](#仓库性质授权与免责声明)
+- [核心功能](#核心功能)
+- [支持环境](#支持环境)
+- [脚本安装](#脚本安装)
+- [Docker 部署](#docker-部署)
+- [卸载](#卸载)
+- [常见问题](#常见问题)
+
+## 项目说明
+
+VoHive 面向可运行 Linux 的蜂窝通信设备，将多模组发现与管理、SOCKS5/HTTP 代理、短信与 USSD、eSIM/eUICC、VoWiFi/IMS、通知转发和 Web 运维能力整合到一个服务中。
+
+项目主要针对移远 EC20、EC21、EC25、EG25、EM20、EM500Q 等高通平台模组，也可根据设备暴露的控制接口适配其他兼容模组。实际支持能力取决于模组固件、USB 组合模式、Linux 内核驱动、SIM 卡、运营商和网络环境。
+
+## 特别鸣谢
+
+VoHive 最初由 [iniwex5](https://github.com/iniwex5) 创作和实现，本项目是在原版 VoHive 基础上进行的二次开发与持续维护。
+
+特别感谢原作者在蜂窝模组管理、代理服务、短信、eSIM 和 VoWiFi 等方向上的探索与贡献。本项目的形成离不开原作提供的思路和基础。
+
+原作者目前已不再公开程序源代码。为尊重原作者及相关权利，本项目同样不对外公开应用程序源代码，仅通过本仓库提供安装脚本、使用文档和编译后的发行资产。
+
+本项目是独立维护的二次开发版本，不代表原作者官方立场，原作者也不对本项目后续修改、发布和使用承担责任。
 
 ## 免责声明
 
 > [!WARNING]
-> VoHive 仅供个人内部测试使用，严禁商业使用，也不得用于任何违法或违规场景。
+> VoHive 仅供个人内部测试、学习和技术研究使用，严禁商业使用，也不得用于任何违法或违规场景。
 >
 > 使用者应遵守所在地法律法规，并自行承担因违规或不当使用产生的全部责任。使用本软件即表示接受本声明。
 
-## 功能概览
+- 本仓库是发行资产仓库，不是 VoHive 应用程序的源代码仓库。
+- VoHive 应用程序及其发行资产未采用 MIT、Apache-2.0、GPL 等开源许可证，公开可见或可下载不等于开放源代码，也不构成开源授权。
+- 未经相应权利人明确授权，不得复制后再分发、出售、出租、再许可、修改后重新发布，或移除、篡改相关版权和归属信息。
+- 原版 VoHive 的相关权利归原作者及相应权利人所有；二次开发内容、发行脚本和文档的相关权利归各自权利人所有。
+- 项目使用的第三方组件、依赖和协议实现分别受其自身许可证及权利声明约束，本声明不会取代第三方许可证。
 
-- 网页和 Bot 收发短信
-- 多卡统一管理
-- 实体 eSIM 和 eUICC 管理，包括加卡、切卡和删卡
-- Telegram Bot、飞书 Bot 和 QQ Bot
-- 在满足条件时进行 VoWiFi 测试
-- 通过 `/vocall` 发起 VoWiFi 模拟外呼测试
+如需进行个人内部测试、学习和技术研究以外的使用或分发，请先取得相关权利人的明确授权。
+
+## 核心功能
+
+
+| 功能模块         | 主要能力                                                  |
+| ------------ | ----------------------------------------------------- |
+| 多模组管理        | 自动发现 USB 热插拔设备，统一管理多个模组，显示运营商、信号、网络、SIM 卡和运行状态        |
+| 多后端控制        | 支持 AT、QMI 和 MBIM 设备形态，根据模组能力管理控制口、数据接口及运行策略           |
+| 移动网络代理       | 内建 SOCKS5 和 HTTP 代理服务，支持多实例并发，并按设备网卡绑定蜂窝出口            |
+| 前置代理策略       | 管理上游代理和基于国家或运营商的路由规则，为代理服务和 VoWiFi 提供出口策略             |
+| 短信中心         | 多设备短信收发、投递状态、联系人会话、历史记录、SQLite 持久化和通知转发               |
+| USSD 终端      | 发起、继续和取消 USSD 会话，处理余额查询等交互式运营商指令                      |
+| eSIM 与 eUICC | 查看芯片和 EID、下载 Profile、启用、停用、重命名、删除及处理 eUICC 通知         |
+| VoWiFi 与 IMS | 利用 SIM 硬件鉴权建立 VoWiFi/IMS 通信链路，支持状态诊断、重连及相关通信测试        |
+| 通知中心         | 支持 Telegram、Email、PushPlus、Bark、飞书、QQ 和 Webhook 等通知渠道 |
+| Web 管理与 API  | 提供仪表盘、设备、代理、短信、日志、通知和系统设置页面，以及 OpenAPI 接口文档           |
+| 运维与安全        | 管理员认证、账号密码修改、实时日志、系统信息、配置持久化和 systemd 服务管理            |
+
+
+部分功能对硬件和运营商有严格依赖，不支持的模组或网络不会因为软件中存在对应入口而自动获得相关能力。
+
+## 技术实现
+
+- 后端：Go、Gin、GORM、Viper
+- 前端：Vue 3、Vite、Tailwind CSS、Element Plus
+- 数据存储：SQLite
+- 设备接口：AT、QMI、MBIM
+- 部署方式：Linux 单二进制、systemd、Docker
+- 发布架构：amd64、arm64、armv7
+
+本节仅说明技术构成，不表示本仓库提供上述组件的应用程序源代码。
 
 ## 支持环境
 
@@ -26,34 +89,36 @@ VoHive 的公开分发仓库，提供 Linux 二进制发布资产、一键安装
 
 - Debian 或 Ubuntu
 - 树莓派系统
-- 支持 systemd 的 NAS 系统
+- 支持 systemd 的 NAS 或软路由系统
 
 使用 `--no-systemd` 可以只安装二进制文件。Docker 部署不依赖安装脚本。
 
 ### CPU 架构
 
-安装脚本会通过 `uname -m` 自动选择资产：
+安装脚本会通过 `uname -m` 自动选择 Release 资产：
 
-| 系统架构 | Release 资产 |
-| --- | --- |
-| `x86_64`、`amd64` | `vohive-linux-amd64` |
+
+| 系统架构              | Release 资产           |
+| ----------------- | -------------------- |
+| `x86_64`、`amd64`  | `vohive-linux-amd64` |
 | `aarch64`、`arm64` | `vohive-linux-arm64` |
-| `armv7`、`armv7l` | `vohive-linux-armv7` |
+| `armv7`、`armv7l`  | `vohive-linux-armv7` |
+
 
 每个 Release 还应提供 `SHA256SUMS`。安装脚本下载到校验文件时会自动验证二进制完整性。
 
 ### 硬件
 
-推荐硬件包括：
+常见测试硬件包括：
 
-- 移远 EC20CE 系列 4G 模组
-- 移远 EM500Q 5G 模组
-- 高通 410 Wi-Fi 板等可运行 Debian 或 OpenWrt 的设备
-- 其他常见的高速 4G 或 5G USB 模组
+- 移远 EC20、EC21、EC25、EG25 系列 4G 模组
+- 移远 EM20、EM500Q 等 5G 模组
+- 可运行 Debian 或 OpenWrt 的高通平台设备
+- 其他提供兼容 AT、QMI 或 MBIM 接口的 USB 蜂窝模组
 
-设备需要具备 SIM 卡槽，或者搭配带 SIM 卡槽的 USB 底板。
+设备需要具备 SIM 卡槽，或者搭配带 SIM 卡槽的 USB 底板。eSIM、QMI、MBIM 和 VoWiFi 能力需以实际模组及固件支持情况为准。
 
-## 快速安装
+## 脚本安装
 
 ### 直连 GitHub
 
@@ -70,9 +135,7 @@ curl -fsSL https://gh-proxy.com/https://raw.githubusercontent.com/nkguo/vohive-r
   | VOHIVE_DOWNLOAD_PROXY=https://gh-proxy.com bash
 ```
 
-安装最新版时，脚本直接使用 GitHub 官方的 `releases/latest/download` 地址，不调用 GitHub API。这样可以避免匿名 API 限流或公共代理共享出口导致的 `403`。
-
-## 安装选项
+安装最新版时，脚本直接使用 GitHub 官方的 `releases/latest/download` 地址，不调用 GitHub API，可以避免匿名 API 限流或公共代理共享出口导致的 `403`。
 
 ### 指定版本
 
@@ -80,19 +143,17 @@ curl -fsSL https://gh-proxy.com/https://raw.githubusercontent.com/nkguo/vohive-r
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/nkguo/vohive-release/main/install.sh \
-  | bash -s -- --version 1.5.5
+  | bash -s -- --version 1.0.1
 ```
 
 使用代理安装指定版本：
 
 ```bash
 curl -fsSL https://gh-proxy.com/https://raw.githubusercontent.com/nkguo/vohive-release/main/install.sh \
-  | VOHIVE_DOWNLOAD_PROXY=https://gh-proxy.com bash -s -- --version 1.5.5
+  | VOHIVE_DOWNLOAD_PROXY=https://gh-proxy.com bash -s -- --version 1.0.1
 ```
 
 ### 仅安装二进制
-
-不创建或启动 systemd 服务：
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/nkguo/vohive-release/main/install.sh \
@@ -107,7 +168,7 @@ curl -fsSL https://raw.githubusercontent.com/nkguo/vohive-release/main/install.s
 
 ### 预览安装操作
 
-`--dry-run` 会完成版本和资产下载检查，但不会写入系统安装目录或修改 systemd：
+`--dry-run` 会完成资产下载检查，但不会写入系统安装目录或修改 systemd：
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/nkguo/vohive-release/main/install.sh \
@@ -116,7 +177,7 @@ curl -fsSL https://raw.githubusercontent.com/nkguo/vohive-release/main/install.s
 
 ### 覆盖默认配置
 
-默认情况下，重复安装不会覆盖已有的 `config.yaml`。如需重新生成最小配置，可传入 `--force`：
+重复安装默认不会覆盖已有的 `config.yaml`。如需重新生成最小配置，可传入 `--force`：
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/nkguo/vohive-release/main/install.sh \
@@ -126,26 +187,22 @@ curl -fsSL https://raw.githubusercontent.com/nkguo/vohive-release/main/install.s
 > [!CAUTION]
 > `--force` 会覆盖 `/opt/vohive/config/config.yaml`，执行前请备份现有配置。
 
-### 环境变量
+### 参数说明
 
-| 环境变量 | 默认值 | 说明 |
-| --- | --- | --- |
-| `VOHIVE_DOWNLOAD_PROXY` | 空 | Release 下载代理前缀，例如 `https://gh-proxy.com` |
-| `VOHIVE_RELEASE_REPO` | `nkguo/vohive-release` | Release 所在的 GitHub 仓库，主要用于测试或镜像仓库 |
 
-可用的命令行选项：
+| 选项或变量                   | 默认值                    | 说明                                       |
+| ----------------------- | ---------------------- | ---------------------------------------- |
+| `--version <X.Y.Z       | latest>`               | `latest`                                 |
+| `--no-systemd`          | 关闭                     | 不安装 systemd 服务                           |
+| `--dry-run`             | 关闭                     | 预览操作，不修改系统安装目录                           |
+| `--force`               | 关闭                     | 覆盖已有的默认配置文件                              |
+| `VOHIVE_DOWNLOAD_PROXY` | 空                      | Release 下载代理前缀，例如 `https://gh-proxy.com` |
+| `VOHIVE_RELEASE_REPO`   | `nkguo/vohive-release` | Release 所在的 GitHub 仓库                    |
 
-| 选项 | 说明 |
-| --- | --- |
-| `--version <X.Y.Z\|latest>` | 安装指定版本或最新版 |
-| `--no-systemd` | 不安装 systemd 服务 |
-| `--dry-run` | 预览操作，不修改系统安装目录 |
-| `--force` | 覆盖已有的默认配置文件 |
-| `-h`、`--help` | 显示帮助 |
 
 ## 安装后的检查
 
-使用 systemd 安装后，检查服务状态：
+检查服务状态：
 
 ```bash
 systemctl status vohive --no-pager
@@ -163,18 +220,20 @@ journalctl -u vohive -f
 http://服务器IP:7575
 ```
 
-默认 Web 账号和密码均为 `admin`。首次登录后应立即修改密码，并避免将管理端口直接暴露到不受信任的公网。
+默认 Web 账号和密码均为 `admin`。首次登录后应立即修改用户名和密码，并避免将管理端口直接暴露到不受信任的公网。
 
 ## 安装目录
 
-| 内容 | 路径 |
-| --- | --- |
-| 主程序 | `/opt/vohive/bin/vohive` |
-| 上一版本备份 | `/opt/vohive/bin/vohive.bak` |
-| 配置文件 | `/opt/vohive/config/config.yaml` |
-| 数据目录 | `/opt/vohive/data` |
-| 日志目录 | `/opt/vohive/logs` |
+
+| 内容         | 路径                                   |
+| ---------- | ------------------------------------ |
+| 主程序        | `/opt/vohive/bin/vohive`             |
+| 上一版本备份     | `/opt/vohive/bin/vohive.bak`         |
+| 配置文件       | `/opt/vohive/config/config.yaml`     |
+| 数据目录       | `/opt/vohive/data`                   |
+| 日志目录       | `/opt/vohive/logs`                   |
 | systemd 服务 | `/etc/systemd/system/vohive.service` |
+
 
 ## 升级与回滚
 
@@ -182,69 +241,26 @@ http://服务器IP:7575
 
 已有配置默认会保留；只有显式传入 `--force` 时才会覆盖配置文件。
 
-## 卸载
-
-### 卸载程序并保留数据
-
-默认卸载会停止并禁用 systemd 服务，删除服务文件、主程序和二进制备份，但保留配置、数据和日志：
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/nkguo/vohive-release/main/uninstall.sh | bash
-```
-
-保留的目录为：
-
-- `/opt/vohive/config`
-- `/opt/vohive/data`
-- `/opt/vohive/logs`
-
-### 完整卸载
-
-删除服务、程序、配置、数据、日志以及整个 `/opt/vohive` 目录：
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/nkguo/vohive-release/main/uninstall.sh \
-  | bash -s -- --purge
-```
-
-> [!CAUTION]
-> `--purge` 会永久删除 VoHive 的配置、数据和日志，请先备份需要保留的内容。
-
-### 完整卸载但保留配置
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/nkguo/vohive-release/main/uninstall.sh \
-  | bash -s -- --purge --keep-config
-```
-
-该命令会保留 `/opt/vohive/config`，删除程序、数据和日志。
-
-### 通过代理获取卸载脚本
-
-```bash
-curl -fsSL https://gh-proxy.com/https://raw.githubusercontent.com/nkguo/vohive-release/main/uninstall.sh \
-  | bash -s -- --purge
-```
-
-### 预览卸载操作
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/nkguo/vohive-release/main/uninstall.sh \
-  | bash -s -- --dry-run --purge
-```
-
 ## Docker 部署
 
-Docker 部署与脚本安装相互独立。下面以 `v1.5.5` 的离线镜像为例：
+### 镜像地址
+
+- **Docker Hub**：`docker.io/nkguo/vohive`
+- **GHCR**：`ghcr.io/nkguo/vohive`
+
+选择其中一个镜像源：
 
 ```bash
-curl -fL \
-  https://github.com/nkguo/vohive-release/releases/download/v1.5.5/docker_iniwex_vohive_1.5.5_latest.tar \
-  -o docker_iniwex_vohive_1.5.5_latest.tar
-docker load -i docker_iniwex_vohive_1.5.5_latest.tar
+docker pull docker.io/nkguo/vohive:1.0.1
 ```
 
-创建目录：
+或者：
+
+```bash
+docker pull ghcr.io/nkguo/vohive:1.0.1
+```
+
+### 准备目录
 
 ```bash
 mkdir -p vohive/{config,data,logs}
@@ -262,13 +278,14 @@ web:
   password: "admin123"
 ```
 
+### Docker Compose
+
 创建 `docker-compose.yml`：
 
 ```yaml
 services:
   vohive:
-    image: iniwex/vohive:latest
-    pull_policy: never
+    image: docker.io/nkguo/vohive:1.0.1
     container_name: vohive
     restart: unless-stopped
     network_mode: host
@@ -278,30 +295,76 @@ services:
       - ./data:/app/data
       - ./logs:/app/logs
     environment:
-      - TZ=Asia/Shanghai
-      - CONFIG_PATH=/app/config/config.yaml
+      TZ: Asia/Shanghai
+      CONFIG_PATH: /app/config/config.yaml
     devices:
       - /dev:/dev
 ```
 
-启动容器：
+如果使用 GHCR，将 `image` 改为 `ghcr.io/nkguo/vohive:1.0.1`。
+
+启动并查看状态：
 
 ```bash
 docker compose up -d
-```
-
-查看状态和日志：
-
-```bash
 docker compose ps
 docker compose logs -f vohive
 ```
 
-Docker 部署同样通过 `http://服务器IP:7575` 访问。由于程序需要直接访问模组设备，示例使用了 `privileged`、`/dev` 透传和主机网络；请仅在可信主机上运行。
+Docker 部署同样通过 `http://服务器IP:7575` 访问。程序需要直接访问蜂窝模组设备，因此示例使用了 `privileged`、`/dev` 透传和主机网络；请仅在可信主机上运行。
+
+## 卸载
+
+### 卸载程序并保留数据
+
+默认卸载会停止并禁用 systemd 服务，删除服务文件、主程序和二进制备份，但保留配置、数据和日志：
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/nkguo/vohive-release/main/uninstall.sh | bash
+```
+
+保留的目录包括：
+
+- `/opt/vohive/config`
+- `/opt/vohive/data`
+- `/opt/vohive/logs`
+
+### 完整卸载
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/nkguo/vohive-release/main/uninstall.sh \
+  | bash -s -- --purge
+```
+
+> [!CAUTION]
+> `--purge` 会永久删除整个 `/opt/vohive`，包括配置、数据和日志。执行前请备份需要保留的内容。
+
+### 完整卸载但保留配置
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/nkguo/vohive-release/main/uninstall.sh \
+  | bash -s -- --purge --keep-config
+```
+
+该命令保留 `/opt/vohive/config`，删除程序、数据和日志。
+
+### 通过代理获取卸载脚本
+
+```bash
+curl -fsSL https://gh-proxy.com/https://raw.githubusercontent.com/nkguo/vohive-release/main/uninstall.sh \
+  | bash -s -- --purge
+```
+
+### 预览卸载操作
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/nkguo/vohive-release/main/uninstall.sh \
+  | bash -s -- --dry-run --purge
+```
 
 ## ModemManager 共存
 
-VoHive 在 QMI 模式下会优先通过 `qmi-proxy` 打开控制口，因此可以与系统 `ModemManager` 共用 QMI 通道。
+VoHive 在 QMI 模式下会优先通过 `qmi-proxy` 打开控制口，可与系统 `ModemManager` 共用 QMI 通道。
 
 同时运行两个管理方时，不建议让两边同时管理拨号、APN 或数据连接。Docker 部署使用 AT 模式时，也需要关闭宿主机的 `ModemManager`，避免设备占用冲突。
 
@@ -324,23 +387,27 @@ echo 'AT+QCFG="usbnet",0;+CFUN=1,1' | sudo socat - /dev/ttyUSB2,crnl
 
 ## Bot 常用命令
 
-| 命令 | 说明 |
-| --- | --- |
-| `/list` | 查看设备列表 |
-| `/sms 设备ID` | 查看最近短信 |
-| `/send 设备ID 号码 内容` | 发送短信 |
-| `/rotate 设备ID` | 切换 IP |
-| `/esim 设备ID` | 查看 eSIM profile |
-| `/switch 设备ID 序号或ICCID` | 切换 eSIM profile |
-| `/vocall 设备ID 号码` | 发起 VoWiFi 模拟呼叫测试 |
+
+| 命令                      | 说明               |
+| ----------------------- | ---------------- |
+| `/list`                 | 查看设备列表           |
+| `/sms 设备ID`             | 查看最近短信           |
+| `/send 设备ID 号码 内容`      | 发送短信             |
+| `/rotate 设备ID`          | 切换 IP            |
+| `/esim 设备ID`            | 查看 eSIM Profile  |
+| `/switch 设备ID 序号或ICCID` | 切换 eSIM Profile  |
+| `/vocall 设备ID 号码`       | 发起 VoWiFi 模拟呼叫测试 |
+
+
+不同通知渠道支持的命令可能不同，具体以当前版本界面和实际返回为准。
 
 ## 常见问题
 
 ### 下载时出现 403
 
-先确认使用的是本 README 中的新安装命令。新版安装脚本不会访问 `api.github.com`；最新版二进制直接通过 `releases/latest/download` 下载。
+先确认使用的是本 README 中的新安装命令。新版安装脚本不会访问 `api.github.com`，最新版二进制直接通过 `releases/latest/download` 下载。
 
-如果直连 GitHub 的 Raw 或 Release 地址仍然返回 `403` 或连接超时，请使用“使用下载代理”中的完整命令，并确保下载脚本和 `VOHIVE_DOWNLOAD_PROXY` 同时配置。不要只给脚本地址加代理而遗漏环境变量，否则后续 Release 资产仍会直连 GitHub。
+如果直连 GitHub 的 Raw 或 Release 地址仍返回 `403` 或连接超时，请使用“使用下载代理”中的完整命令，并确保脚本 URL 和 `VOHIVE_DOWNLOAD_PROXY` 同时配置代理。
 
 ### 服务启动失败
 
@@ -349,7 +416,7 @@ systemctl status vohive --no-pager
 journalctl -u vohive -n 200 --no-pager
 ```
 
-重点检查配置格式、端口占用、模组设备权限，以及 `ModemManager` 是否占用了设备。
+重点检查配置格式、端口占用、模组设备权限、USB 模式，以及 `ModemManager` 是否占用设备。
 
 ### 网页无法访问
 
@@ -359,13 +426,17 @@ journalctl -u vohive -n 200 --no-pager
 
 这是默认的数据保护行为。普通卸载会保留配置、数据和日志；确认不再需要这些内容后，使用 `--purge` 完整卸载。
 
+### 功能入口存在但操作失败
+
+模组功能并不完全统一。请检查设备控制口、固件版本、驱动、SIM 状态、运营商限制和日志信息。eSIM、USSD、MBIM、QMI 和 VoWiFi 尤其依赖硬件及网络支持。
+
 ## VoWiFi 说明
 
-- VoWiFi 能否使用取决于运营商、号码状态、设备配置和网络环境，并非只要联网即可使用
-- 如果只需要短信、代理池或多模组管理，可以不启用 VoWiFi
+- VoWiFi 能否使用取决于运营商、号码状态、SIM 鉴权、设备配置和网络环境，并非只要联网即可使用
+- 如果只需要短信、代理或多模组管理，可以不启用 VoWiFi
 - 程序禁止中国大陆运营商 SIM 卡发起 VoWiFi，请遵守当地法律法规
 
-已知可用于 VoWiFi 测试的运营商包括：
+已知进行过 VoWiFi 测试的运营商包括：
 
 - CTE UK
 - CMLINK UK
@@ -381,7 +452,7 @@ journalctl -u vohive -n 200 --no-pager
 - Lyca US
 - AT&T US
 
-未列出不代表一定不兼容，仅表示尚未验证。
+未列出不代表一定不兼容，仅表示尚未验证。网络、套餐和运营商策略变化也可能影响已经测试过的号码。
 
 ## 程序截图
 
