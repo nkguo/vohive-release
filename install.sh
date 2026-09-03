@@ -61,15 +61,6 @@ proxy_url() {
   printf '%s/%s\n' "${DOWNLOAD_PROXY%/}" "$1"
 }
 
-fetch_url() {
-  local url="$1"
-  if [[ -n "${DOWNLOAD_PROXY}" ]]; then
-    curl -fsSL --retry 2 --connect-timeout 10 "$(proxy_url "${url}")"
-  else
-    curl -fsSL --retry 2 --connect-timeout 10 "${url}"
-  fi
-}
-
 download_file() {
   local url="$1"
   local destination="$2"
@@ -86,25 +77,14 @@ download_file() {
 
 resolve_version() {
   local v="$1"
-  if [[ -n "${v}" && "${v}" != "latest" ]]; then
-    v="${v#v}"
-    v="${v#V}"
-    printf '%s\n' "${v}"
+  if [[ -z "${v}" || "${v}" == "latest" ]]; then
+    printf 'latest\n'
     return 0
   fi
 
-  local api_url="https://api.github.com/repos/${REPO}/releases/latest"
-  local latest_json
-  latest_json="$(fetch_url "${api_url}")"
-  local resolved
-  resolved="$(printf '%s\n' "${latest_json}" | sed -n 's/.*"tag_name"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | head -n1)"
-  if [[ -z "${resolved}" ]]; then
-    err "无法从 GitHub API 获取最新 Release 版本号。"
-    exit 1
-  fi
-  resolved="${resolved#v}"
-  resolved="${resolved#V}"
-  printf '%s\n' "${resolved}"
+  v="${v#v}"
+  v="${v#V}"
+  printf '%s\n' "${v}"
 }
 
 parse_args() {
@@ -236,14 +216,18 @@ main() {
   arch="$(detect_arch)"
   local resolved_version
   resolved_version="$(resolve_version "${VERSION}")"
-  if ! [[ "${resolved_version}" =~ ^[0-9]+\.[0-9]+\.[0-9]+([-.][0-9A-Za-z.-]+)?$ ]]; then
+  if [[ "${resolved_version}" != "latest" ]] && ! [[ "${resolved_version}" =~ ^[0-9]+\.[0-9]+\.[0-9]+([-.][0-9A-Za-z.-]+)?$ ]]; then
     err "无效版本号: ${resolved_version}"
     exit 1
   fi
 
   local asset="vohive-linux-${arch}"
-  local release_tag="v${resolved_version}"
-  local base="https://github.com/${REPO}/releases/download/${release_tag}"
+  local base
+  if [[ "${resolved_version}" == "latest" ]]; then
+    base="https://github.com/${REPO}/releases/latest/download"
+  else
+    base="https://github.com/${REPO}/releases/download/v${resolved_version}"
+  fi
 
   local tmp
   tmp="$(mktemp -d)"
@@ -251,8 +235,13 @@ main() {
 
   local downloaded="${tmp}/${asset}"
 
-  log "已解析版本: ${resolved_version}"
+  log "安装版本: ${resolved_version}"
   if ! download_file "${base}/${asset}" "${downloaded}"; then
+    if [[ "${resolved_version}" == "latest" ]]; then
+      err "无法下载适用于 ${arch} 的最新 Release 资产"
+      exit 1
+    fi
+
     local legacy_asset
     local legacy_downloaded=0
     for legacy_asset in \
