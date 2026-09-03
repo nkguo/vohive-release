@@ -2,7 +2,6 @@
 set -euo pipefail
 
 REPO="${VOHIVE_RELEASE_REPO:-nkguo/vohive-release}"
-DOWNLOAD_PROXY="${VOHIVE_DOWNLOAD_PROXY:-}"
 VERSION=""
 NO_SYSTEMD=0
 DRY_RUN=0
@@ -24,7 +23,6 @@ usage() {
   cat <<USAGE
 用法: install.sh [选项]
   --version <X.Y.Z|latest>
-  VOHIVE_DOWNLOAD_PROXY=<url-prefix> 使用下载代理（例如 https://gh-proxy.com）
   --no-systemd
   --dry-run
   --force
@@ -57,29 +55,33 @@ need_cmd() {
   }
 }
 
-proxy_url() {
-  printf '%s/%s\n' "${DOWNLOAD_PROXY%/}" "$1"
-}
-
 download_file() {
   local url="$1"
   local destination="$2"
 
-  local request_url="${url}"
-  if [[ -n "${DOWNLOAD_PROXY}" ]]; then
-    request_url="$(proxy_url "${url}")"
-    log "使用下载代理: ${request_url}"
-  else
-    log "正在下载: ${request_url}"
-  fi
-  curl -fsSL --retry 2 --connect-timeout 10 "${request_url}" -o "${destination}"
+  log "正在下载: ${url}"
+  curl -fsSL --retry 2 --connect-timeout 10 "${url}" -o "${destination}"
 }
 
 resolve_version() {
   local v="$1"
   if [[ -z "${v}" || "${v}" == "latest" ]]; then
-    printf 'latest\n'
-    return 0
+    local latest_url="https://github.com/${REPO}/releases/latest"
+    local final_url
+    if ! final_url="$(curl -fsSL --retry 2 --connect-timeout 10 -o /dev/null -w '%{url_effective}' "${latest_url}")"; then
+      err "无法解析最新 Release 版本号"
+      return 1
+    fi
+
+    if [[ "${final_url}" != */releases/tag/* ]]; then
+      err "最新 Release 地址无效: ${final_url}"
+      return 1
+    fi
+
+    v="${final_url##*/releases/tag/}"
+    v="${v%%\?*}"
+    v="${v%%\#*}"
+    v="${v%/}"
   fi
 
   v="${v#v}"
@@ -216,18 +218,13 @@ main() {
   arch="$(detect_arch)"
   local resolved_version
   resolved_version="$(resolve_version "${VERSION}")"
-  if [[ "${resolved_version}" != "latest" ]] && ! [[ "${resolved_version}" =~ ^[0-9]+\.[0-9]+\.[0-9]+([-.][0-9A-Za-z.-]+)?$ ]]; then
+  if ! [[ "${resolved_version}" =~ ^[0-9]+\.[0-9]+\.[0-9]+([-.][0-9A-Za-z.-]+)?$ ]]; then
     err "无效版本号: ${resolved_version}"
     exit 1
   fi
 
-  local asset="vohive-linux-${arch}"
-  local base
-  if [[ "${resolved_version}" == "latest" ]]; then
-    base="https://github.com/${REPO}/releases/latest/download"
-  else
-    base="https://github.com/${REPO}/releases/download/v${resolved_version}"
-  fi
+  local asset="vohive_v${resolved_version}_linux_${arch}"
+  local base="https://github.com/${REPO}/releases/download/v${resolved_version}"
 
   local tmp
   tmp="$(mktemp -d)"
@@ -237,28 +234,8 @@ main() {
 
   log "安装版本: ${resolved_version}"
   if ! download_file "${base}/${asset}" "${downloaded}"; then
-    if [[ "${resolved_version}" == "latest" ]]; then
-      err "无法下载适用于 ${arch} 的最新 Release 资产"
-      exit 1
-    fi
-
-    local legacy_asset
-    local legacy_downloaded=0
-    for legacy_asset in \
-      "vohive_v${resolved_version}_linux_${arch}" \
-      "vohive_${resolved_version}_linux_${arch}"; do
-      log "主资产下载失败，尝试历史资产: ${legacy_asset}"
-      if download_file "${base}/${legacy_asset}" "${downloaded}"; then
-        asset="${legacy_asset}"
-        legacy_downloaded=1
-        break
-      fi
-    done
-
-    if [[ "${legacy_downloaded}" != "1" ]]; then
-      err "无法下载适用于 ${arch} 的 Release 资产"
-      exit 1
-    fi
+    err "无法下载适用于 ${arch} 的 Release 资产: ${asset}"
+    exit 1
   fi
 
   local checksums="${tmp}/SHA256SUMS"

@@ -42,7 +42,7 @@ make_install_fakes() {
 #!/usr/bin/env bash
 case "${1:-}" in
   -s) printf 'Linux\n' ;;
-  -m) printf 'x86_64\n' ;;
+  -m) printf '%s\n' "${FAKE_UNAME_M:-x86_64}" ;;
   *) printf 'Linux\n' ;;
 esac
 EOF
@@ -51,10 +51,15 @@ EOF
 #!/usr/bin/env bash
 url=""
 destination=""
+write_out=""
 while [[ $# -gt 0 ]]; do
   case "$1" in
     -o)
       destination="$2"
+      shift 2
+      ;;
+    -w)
+      write_out="$2"
       shift 2
       ;;
     http://*|https://*)
@@ -73,9 +78,19 @@ if [[ "${url}" == *api.github.com* ]]; then
   exit 22
 fi
 
+if [[ "${url}" == "https://github.com/nkguo/vohive-release/releases/latest" ]]; then
+  [[ -n "${write_out}" ]] || exit 1
+  printf 'https://github.com/nkguo/vohive-release/releases/tag/v1.0.1'
+  exit 0
+fi
+
 if [[ -n "${destination}" ]]; then
   if [[ "${url}" == */SHA256SUMS ]]; then
-    printf 'test-checksum  vohive-linux-amd64\n' > "${destination}"
+    cat > "${destination}" <<'SUMS'
+test-checksum  vohive_v1.0.1_linux_amd64
+test-checksum  vohive_v1.0.1_linux_arm64
+test-checksum  vohive_v1.0.1_linux_armv7
+SUMS
   else
     printf 'binary\n' > "${destination}"
   fi
@@ -90,27 +105,42 @@ EOF
   chmod +x "${fake_bin}/uname" "${fake_bin}/curl" "${fake_bin}/sha256sum"
 }
 
-test_latest_install_avoids_github_api() {
-  local fake_bin="${TEST_TMP}/fake-bin"
-  local curl_log="${TEST_TMP}/curl.log"
+assert_latest_asset_for_arch() {
+  local uname_arch="$1"
+  local release_arch="$2"
+  local test_name="${uname_arch//[^0-9A-Za-z]/-}"
+  local fake_bin="${TEST_TMP}/fake-bin-${test_name}"
+  local curl_log="${TEST_TMP}/curl-${test_name}.log"
   make_install_fakes "${fake_bin}"
 
   local output
   if ! output="$(
     CURL_LOG="${curl_log}" \
+      FAKE_UNAME_M="${uname_arch}" \
       PATH="${fake_bin}:${PATH}" \
-      VOHIVE_DOWNLOAD_PROXY="https://gh-proxy.com" \
+      VOHIVE_DOWNLOAD_PROXY="https://should-not-be-used.example" \
       bash "${REPO_DIR}/install.sh" --dry-run --no-systemd 2>&1
   )"; then
     printf '%s\n' "${output}" >&2
-    fail 'latest install should succeed without the GitHub API'
+    fail "latest install should succeed for ${uname_arch}"
   fi
 
   local requests
   requests="$(cat "${curl_log}")"
+  assert_contains "${requests}" 'https://github.com/nkguo/vohive-release/releases/latest' 'latest install should resolve the release tag without the GitHub API'
+  assert_contains "${requests}" "https://github.com/nkguo/vohive-release/releases/download/v1.0.1/vohive_v1.0.1_linux_${release_arch}" "${uname_arch} should select the ${release_arch} asset"
+  assert_contains "${requests}" 'https://github.com/nkguo/vohive-release/releases/download/v1.0.1/SHA256SUMS' 'checksum should come from the resolved release'
   assert_not_contains "${requests}" 'api.github.com' 'latest install must not query the rate-limited API'
-  assert_contains "${requests}" 'https://gh-proxy.com/https://github.com/nkguo/vohive-release/releases/latest/download/vohive-linux-amd64' 'latest asset should use the stable latest-download URL through the proxy'
-  assert_contains "${requests}" 'https://gh-proxy.com/https://github.com/nkguo/vohive-release/releases/latest/download/SHA256SUMS' 'latest checksum should use the stable latest-download URL through the proxy'
+  assert_not_contains "${requests}" 'should-not-be-used.example' 'the removed download proxy variable must not affect requests'
+}
+
+test_latest_install_maps_all_supported_architectures() {
+  assert_latest_asset_for_arch x86_64 amd64
+  assert_latest_asset_for_arch amd64 amd64
+  assert_latest_asset_for_arch aarch64 arm64
+  assert_latest_asset_for_arch arm64 arm64
+  assert_latest_asset_for_arch armv7 armv7
+  assert_latest_asset_for_arch armv7l armv7
 }
 
 test_uninstall_reports_preserved_data_by_default() {
@@ -141,7 +171,7 @@ test_purge_can_preserve_configuration() {
 
 case "${1:-all}" in
   install)
-    test_latest_install_avoids_github_api
+    test_latest_install_maps_all_supported_architectures
     ;;
   uninstall-default)
     test_uninstall_reports_preserved_data_by_default
@@ -153,7 +183,7 @@ case "${1:-all}" in
     test_purge_can_preserve_configuration
     ;;
   all)
-    test_latest_install_avoids_github_api
+    test_latest_install_maps_all_supported_architectures
     test_uninstall_reports_preserved_data_by_default
     test_purge_removes_the_entire_application_directory
     test_purge_can_preserve_configuration

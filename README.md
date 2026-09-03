@@ -98,14 +98,12 @@ VoHive 最初由 [iniwex5](https://github.com/iniwex5) 创作和实现，本项�
 安装脚本会通过 `uname -m` 自动选择 Release 资产：
 
 
-| 系统架构              | Release 资产           |
-| ----------------- | -------------------- |
-| `x86_64`、`amd64`  | `vohive-linux-amd64` |
-| `aarch64`、`arm64` | `vohive-linux-arm64` |
-| `armv7`、`armv7l`  | `vohive-linux-armv7` |
+| 系统架构              | Release 资产                 |
+| ----------------- | -------------------------- |
+| `x86_64`、`amd64`  | `vohive_v<版本>_linux_amd64` |
+| `aarch64`、`arm64` | `vohive_v<版本>_linux_arm64` |
+| `armv7`、`armv7l`  | `vohive_v<版本>_linux_armv7` |
 
-
-每个 Release 还应提供 `SHA256SUMS`。安装脚本下载到校验文件时会自动验证二进制完整性。
 
 ### 硬件
 
@@ -120,22 +118,11 @@ VoHive 最初由 [iniwex5](https://github.com/iniwex5) 创作和实现，本项�
 
 ## 脚本安装
 
-### 直连 GitHub
+### 安装最新版
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/nkguo/vohive-release/main/install.sh | bash
 ```
-
-### 使用下载代理
-
-无法稳定访问 GitHub 时，可通过代理下载安装脚本和 Release 资产：
-
-```bash
-curl -fsSL https://gh-proxy.com/https://raw.githubusercontent.com/nkguo/vohive-release/main/install.sh \
-  | VOHIVE_DOWNLOAD_PROXY=https://gh-proxy.com bash
-```
-
-安装最新版时，脚本直接使用 GitHub 官方的 `releases/latest/download` 地址，不调用 GitHub API，可以避免匿名 API 限流或公共代理共享出口导致的 `403`。
 
 ### 指定版本
 
@@ -144,13 +131,6 @@ curl -fsSL https://gh-proxy.com/https://raw.githubusercontent.com/nkguo/vohive-r
 ```bash
 curl -fsSL https://raw.githubusercontent.com/nkguo/vohive-release/main/install.sh \
   | bash -s -- --version 1.0.1
-```
-
-使用代理安装指定版本：
-
-```bash
-curl -fsSL https://gh-proxy.com/https://raw.githubusercontent.com/nkguo/vohive-release/main/install.sh \
-  | VOHIVE_DOWNLOAD_PROXY=https://gh-proxy.com bash -s -- --version 1.0.1
 ```
 
 ### 仅安装二进制
@@ -190,14 +170,12 @@ curl -fsSL https://raw.githubusercontent.com/nkguo/vohive-release/main/install.s
 ### 参数说明
 
 
-| 选项或变量                   | 默认值                    | 说明                                       |
-| ----------------------- | ---------------------- | ---------------------------------------- |
-| `--version <X.Y.Z       | latest>`               | `latest`                                 |
-| `--no-systemd`          | 关闭                     | 不安装 systemd 服务                           |
-| `--dry-run`             | 关闭                     | 预览操作，不修改系统安装目录                           |
-| `--force`               | 关闭                     | 覆盖已有的默认配置文件                              |
-| `VOHIVE_DOWNLOAD_PROXY` | 空                      | Release 下载代理前缀，例如 `https://gh-proxy.com` |
-| `VOHIVE_RELEASE_REPO`   | `nkguo/vohive-release` | Release 所在的 GitHub 仓库                    |
+| 选项或变量             | 默认值      | 说明             |
+| ----------------- | -------- | -------------- |
+| `--version <X.Y.Z | latest>` | `latest`       |
+| `--no-systemd`    | 关闭       | 不安装 systemd 服务 |
+| `--dry-run`       | 关闭       | 预览操作，不修改系统安装目录 |
+| `--force`         | 关闭       | 覆盖已有的默认配置文件    |
 
 
 ## 安装后的检查
@@ -242,7 +220,6 @@ http://服务器IP:7575
 已有配置默认会保留；只有显式传入 `--force` 时才会覆盖配置文件。
 
 ## Docker 部署
-
 
 - **Docker Hub**：`docker.io/nkguo/vohive`
 - **GHCR**：`ghcr.io/nkguo/vohive`
@@ -347,13 +324,6 @@ curl -fsSL https://raw.githubusercontent.com/nkguo/vohive-release/main/uninstall
 
 该命令保留 `/opt/vohive/config`，删除程序、数据和日志。
 
-### 通过代理获取卸载脚本
-
-```bash
-curl -fsSL https://gh-proxy.com/https://raw.githubusercontent.com/nkguo/vohive-release/main/uninstall.sh \
-  | bash -s -- --purge
-```
-
 ### 预览卸载操作
 
 ```bash
@@ -404,9 +374,7 @@ echo 'AT+QCFG="usbnet",0;+CFUN=1,1' | sudo socat - /dev/ttyUSB2,crnl
 
 ### 下载时出现 403
 
-先确认使用的是本 README 中的新安装命令。新版安装脚本不会访问 `api.github.com`，最新版二进制直接通过 `releases/latest/download` 下载。
-
-如果直连 GitHub 的 Raw 或 Release 地址仍返回 `403` 或连接超时，请使用“使用下载代理”中的完整命令，并确保脚本 URL 和 `VOHIVE_DOWNLOAD_PROXY` 同时配置代理。
+如果 GitHub Raw 或 Release 地址返回 `403` 或连接超时，请检查当前网络、DNS、防火墙以及 GitHub 的可访问性。
 
 ### 服务启动失败
 
