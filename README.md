@@ -124,6 +124,13 @@ VoHive 最初由 [iniwex5](https://github.com/iniwex5) 创作和实现，本项�
 curl -fsSL https://raw.githubusercontent.com/nkguo/vohive-release/main/install.sh | bash
 ```
 
+无法稳定访问 GitHub 时，可通过代理安装：
+
+```bash
+curl -fsSL https://gh-proxy.com/https://raw.githubusercontent.com/nkguo/vohive-release/main/install.sh \
+  | VOHIVE_DOWNLOAD_PROXY=https://gh-proxy.com bash
+```
+
 ### 指定版本
 
 版本号可以带或不带 `v` 前缀：
