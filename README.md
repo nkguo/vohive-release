@@ -100,9 +100,9 @@ VoHive 最初由 [iniwex5](https://github.com/iniwex5) 创作和实现，本项�
 
 | 系统架构              | Release 资产                 |
 | ----------------- | -------------------------- |
-| `x86_64`、`amd64`  | `vohive_v<版本>_linux_amd64` |
-| `aarch64`、`arm64` | `vohive_v<版本>_linux_arm64` |
-| `armv7`、`armv7l`  | `vohive_v<版本>_linux_armv7` |
+| `x86_64`/`amd64`  | `vohive_v<版本>_linux_amd64` |
+| `aarch64`/`arm64` | `vohive_v<版本>_linux_arm64` |
+| `armv7`/`armv7l`  | `vohive_v<版本>_linux_armv7` |
 
 
 ### 硬件
