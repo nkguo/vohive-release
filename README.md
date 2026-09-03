@@ -170,12 +170,13 @@ curl -fsSL https://raw.githubusercontent.com/nkguo/vohive-release/main/install.s
 ### 参数说明
 
 
-| 选项或变量             | 默认值      | 说明             |
+| 选项或变量 | 默认值 | 说明 |
 | ----------------- | -------- | -------------- |
-| `--version <X.Y.Z | latest>` | `latest`       |
-| `--no-systemd`    | 关闭       | 不安装 systemd 服务 |
-| `--dry-run`       | 关闭       | 预览操作，不修改系统安装目录 |
-| `--force`         | 关闭       | 覆盖已有的默认配置文件    |
+| `--version <X.Y.Z | latest>` | `latest` | 指定要安装的版本，支持具体版本号或 `latest` |
+| `--no-systemd` | 关闭 | 不安装 systemd 服务 |
+| `--dry-run` | 关闭 | 预览操作，不修改系统安装目录 |
+| `--force` | 关闭 | 覆盖已有的默认配置文件 |
+| `VOHIVE_DOWNLOAD_PROXY` | 空 | Release 下载代理前缀，例如 `https://gh-proxy.com` |
 
 
 ## 安装后的检查
