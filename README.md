@@ -1,3 +1,5 @@
+<img src="/assets/images/logo.png" alt="VoHive" width="500" height="155">
+
 # VoHive - 探索版
 
 面向高通 4G/LTE/5G 模组的多设备管理、移动网络代理、短信通信、eSIM 和 VoWiFi 综合管理平台。
