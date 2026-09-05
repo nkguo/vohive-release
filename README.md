@@ -1,4 +1,4 @@
-<img src="/assets/images/logo.png" alt="VoHive" width="300" height="93">
+<img src="/assets/images/logo.png" alt="VoHive" width="400" height="124">
 
 # VoHive - 探索版
 
